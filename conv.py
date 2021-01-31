@@ -5,7 +5,7 @@ import ast
 import sys
 USAGE = """
 Converts structures between different formats.
-
+Like `python3 -m json.tool file.json` but reads from stdin by default.
 
 Example:
 
@@ -26,10 +26,10 @@ class Language(Enum):
     Python = "python"
 
 
-def raise_if_not_valid_for_language(s: str, language: str) -> None:
-    if language == "json":
+def raise_if_not_valid_for_language(s: str, language: Language) -> None:
+    if language is Language.Json:
         json.loads(s)
-    elif language == "python":
+    elif language is Language.Python:
         json.dumps(s)
     else:
         raise Exception(f"Programmer error: unhandled language {language}")
@@ -45,8 +45,8 @@ def load_json(s: str) -> Union[Dict, List]:
 
 def conv(
         s: str,
-        from_language="json",
-        to_language="python",
+        from_language: Language,
+        to_language: Language,
         indent: Optional[int]=4,
     ) -> str:
     if from_language == to_language:
@@ -60,35 +60,16 @@ def conv(
             exit(1)
         return s
 
-    if from_language == "json" and to_language == "python":
+    if from_language is Language.Json and to_language is Language.Python:
         return str(load_json(s))
 
-    elif from_language == "python" and to_language == "json":
+    elif from_language is Language.Python and to_language is Language.Json:
         python_object = ast.literal_eval(s)
         return json.dumps(python_object, indent=indent)
 
     else:
         raise ValueError(
             f"Unsupported conversion `{from_language} -> {to_language}`")
-
-
-def test_conv_json_to_json():
-    json_string = '{"name": "foo", "active": false, "redirect_url": null}'
-    assert conv(json_string, "json", "json") == json_string
-
-
-def test_conv_json_to_python():
-    json_string = '{"name": "foo", "active": false, "redirect_url": null}'
-    assert conv(json_string, "json", "python") == (
-        "{'name': 'foo', 'active': False, 'redirect_url': None}"
-    )
-
-
-def test_conv_python_to_json():
-    json_string = '{"name": "foo", "active": false, "redirect_url": null}'
-    assert conv(json_string, "json", "python") == (
-        "{'name': 'foo', 'active': False, 'redirect_url': None}"
-    )
 
 
 def get_parser():
@@ -114,17 +95,18 @@ def get_parser():
     return parser
 
 
-def detect_language(s: str):
+def detect_language(s: str) -> Language:
     # json?
     try:
         json.loads(s)
-        return "json"
+        return Language.Json
     except Exception:
         pass
 
     # python?
     try:
         ast.literal_eval(s)
+        return Language.Python
     except Exception:
         pass
 
@@ -142,13 +124,13 @@ def main():
         input_string = input()
 
     if args.from_language is None and args.to_language is None:
-        from_language, to_language = "json", "python"
+        from_language, to_language = Language.Json, Language.Python
     elif args.to_language is None:
         from_language = detect_language(input_string)
-        to_language = args.from_language
+        to_language = Language(args.from_language)
     else:
-        from_language = args.from_language
-        to_language = args.to_language
+        from_language = Language(args.from_language)
+        to_language = Language(args.to_language)
 
     output_string = conv(
         input_string,
