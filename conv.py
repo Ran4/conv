@@ -1,22 +1,8 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
-from enum import Enum, auto
+from enum import Enum
 import ast
 import sys
-USAGE = """
-Converts structures between different formats.
-Like `python3 -m json.tool file.json` but reads from stdin by default.
-
-Example:
-
-```bash
-$ curl some_endpoint
-{"name": "foo", "active": false, "redirect_url": null}
-
-$ curl some_endpoint | conv.py json python
-{"name": "foo", "active": False, "redirect_url": None}
-```
-"""
 import json
 from typing import Dict, List, Optional, Union
 
